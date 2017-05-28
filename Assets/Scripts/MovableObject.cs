@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CreativeSpore.SuperTilemapEditor;
@@ -6,17 +7,19 @@ using CreativeSpore.SuperTilemapEditor;
 public class MovableObject : MonoBehaviour {
 
 	// Constant Properties
-	protected const float minimumMoveDistance = 0.001f;
-	protected const float shellRadius = 0.01f;
-	protected const int maxCollisions = 8;
-	protected const string iceParameterName = "ice";
-	protected const float tileQueryCastDistance = 0.1f;
+    protected const float kMinimumMoveDistance = 0.001f;
+    protected const float kShellRadius = 0.01f;
+    protected const int kMaxCollisions = 8;
+    protected const string kIceParameterName = "ice";
+    protected const float kTileQueryCastDistance = 0.1f;
 
 	// Inspector Properties
 	[Header("Movement")]
 	public float baseAcceleration = 1.0f;
 	public float baseFriction = 0.1f;
 	public float gravityModifier = 1.0f;
+    // Internal modifier used for player jumping.
+    protected float jumpGravityModifier = 1.0f;
 
 	[Header("Air Movement")]
 	public float airAccelerationModifier = 0.7f;
@@ -29,7 +32,7 @@ public class MovableObject : MonoBehaviour {
 
 	// Grounded Properties
 	private bool _isGrounded;
-	public bool isGrounded {
+	public bool IsGrounded {
 		get { return _isGrounded; }
 		private set {
 			if (_isGrounded == value) return;
@@ -42,19 +45,22 @@ public class MovableObject : MonoBehaviour {
 		}
 	}
 
-	[HideInInspector]
-	public bool isOnJumpThrough = false;
-
+    [Flags]
 	public enum TileType {
-		None,
-		Ground,
-		Ice,
+		None        = 0x0,
+		Ground      = 0x1,
+		Ice         = 0x2,
+        JumpThrough = 0x4,
 	}
 
 	[HideInInspector]
 	public TileType currentGroundType = TileType.None;
 	[HideInInspector]
 	public TileType lastGroundType = TileType.None;
+
+    public bool IsOnJumpThroughTile {
+        get { return (currentGroundType & TileType.JumpThrough) != 0; }
+    }
 
 	// Velocity Properties
 	protected Vector2 targetVelocity;
@@ -63,10 +69,10 @@ public class MovableObject : MonoBehaviour {
 	public Vector2 velocity;
 
 	// Collision Detection
-	private Rigidbody2D rb2d;
-	private ContactFilter2D contactFilter;
-	private RaycastHit2D[] hitBuffer = new RaycastHit2D[maxCollisions];
-	private List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>(maxCollisions);
+    protected Rigidbody2D rb2d;
+    protected ContactFilter2D contactFilter;
+	private RaycastHit2D[] hitBuffer = new RaycastHit2D[kMaxCollisions];
+	private List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>(kMaxCollisions);
 
 	/// <summary>
 	/// This function is called when the object becomes enabled and active.
@@ -109,16 +115,16 @@ public class MovableObject : MonoBehaviour {
 		MoveInDirection(Vector2.right * deltaPosition.x);
 		// Move vertically, and update ground type.
 		currentGroundType = MoveInDirection(Vector2.up * deltaPosition.y);
-		isGrounded = currentGroundType != TileType.None;
-		lastGroundType = isGrounded ? currentGroundType : lastGroundType;
+		IsGrounded = currentGroundType != TileType.None;
+		lastGroundType = IsGrounded ? currentGroundType : lastGroundType;
 	}
 
 	private TileType MoveInDirection(Vector2 delta) {
 		float distance = delta.magnitude;
 		TileType result = TileType.None;
 
-		if (distance > minimumMoveDistance) {
-			int intersectionCount = rb2d.Cast(delta, contactFilter, hitBuffer, distance + shellRadius);
+		if (distance > kMinimumMoveDistance) {
+			int intersectionCount = rb2d.Cast(delta, contactFilter, hitBuffer, distance + kShellRadius);
 
 			hitBufferList.Clear();
 			for (int i = 0; i < intersectionCount; i++) {
@@ -128,13 +134,13 @@ public class MovableObject : MonoBehaviour {
             foreach (RaycastHit2D hit in hitBufferList) {
 				if (ShouldIgnoreCollision(hit)) continue;
 
-				// if (hit.transform.gameObject.layer == LayerManager.shared.jumpThroughLayer) {
-				// 	isOnJumpThrough = true;
-				// }
-
 				Vector2 currentNormal = hit.normal;
                 if (currentNormal.y > 0.0f) {
 					result = TileTypeForRaycastHit(hit);
+                }
+
+                if (hit.transform.gameObject.layer == LayerManager.shared.jumpThroughLayer) {
+                    result |= TileType.JumpThrough;
                 }
 
                 float projection = Vector2.Dot(velocity, currentNormal);
@@ -142,7 +148,7 @@ public class MovableObject : MonoBehaviour {
                     velocity = velocity - projection * currentNormal;
                 }
 
-                float modifiedDistance = hit.distance - shellRadius;
+                float modifiedDistance = hit.distance - kShellRadius;
                 distance = modifiedDistance < distance ? modifiedDistance : distance;
             }
 
@@ -152,7 +158,7 @@ public class MovableObject : MonoBehaviour {
 		return result;
 	}
 
-	private Vector2 ComputeUpdatedVelocity(Vector2 velocity) {
+    private Vector2 ComputeUpdatedVelocity(Vector2 vel) {
 		float accelerationFactor;
 		float frictionFactor;
 		AccelerationAndFrictionForGroundType(out accelerationFactor, out frictionFactor);
@@ -161,31 +167,31 @@ public class MovableObject : MonoBehaviour {
 		bool isFriction = Mathf.Abs(targetVelocity.x) < Mathf.Epsilon;
 
 		float acceleration = isFriction ? frictionFactor : accelerationFactor;
-		float accelerationDirection = Mathf.Sign(targetVelocity.x - velocity.x);
+		float accelerationDirection = Mathf.Sign(targetVelocity.x - vel.x);
 
 		float deltaAbsVelocity = acceleration * Time.deltaTime;
-		float targetVelocityDistance = Mathf.Abs(targetVelocity.x - velocity.x);
+		float targetVelocityDistance = Mathf.Abs(targetVelocity.x - vel.x);
 
 		deltaAbsVelocity = deltaAbsVelocity > targetVelocityDistance ? targetVelocityDistance : deltaAbsVelocity;
 
-		float previousXVelocity = velocity.x;
-		velocity.x += deltaAbsVelocity * accelerationDirection;
+		float previousXVelocity = vel.x;
+		vel.x += deltaAbsVelocity * accelerationDirection;
 
 		// If acceleration is friction, check if we've changed directions
 		// (Dot product of x vector).
-		if (isFriction && previousXVelocity * velocity.x <= 0.0f) {
-			velocity.x = 0.0f;
+		if (isFriction && previousXVelocity * vel.x <= 0.0f) {
+			vel.x = 0.0f;
 		}
 
 		// Adjust for gravity
-		velocity += Physics2D.gravity * gravityModifier * Time.deltaTime;
+        vel += Physics2D.gravity * gravityModifier * jumpGravityModifier * Time.deltaTime;
 
 		// if (Mathf.Abs(velocity.x) > Mathf.Epsilon) {
 		// 	print("Accel: " + acceleration);
 		// 	print("Velocity: " + velocity);
 		// }
 
-		return velocity;
+		return vel;
 	}
 
 	private void AccelerationAndFrictionForGroundType(out float adjustedAcceleration, out float adjustedFriction) {
@@ -211,13 +217,13 @@ public class MovableObject : MonoBehaviour {
 		// Move the hit point in the opposite direction of the normal a little bit,
 		// so that we move into the tile. NOTE: This will break if tileQueryCastDistance is 
 		// more than the cell size.
-		Vector2 localPoint = tilemap.transform.InverseTransformPoint(hit.point - (hit.normal * tileQueryCastDistance));
+		Vector2 localPoint = tilemap.transform.InverseTransformPoint(hit.point - (hit.normal * kTileQueryCastDistance));
 
 		Tile hitTile = tilemap.GetTile(localPoint);
 		// Even if there's no tile, default to ground.
 		if (hitTile == null) return TileType.Ground;
 
-		if (hitTile.paramContainer.GetBoolParam(iceParameterName, false)) {
+		if (hitTile.paramContainer.GetBoolParam(kIceParameterName, false)) {
 			return TileType.Ice;
 		}
 		return TileType.Ground;
@@ -226,7 +232,7 @@ public class MovableObject : MonoBehaviour {
 	private bool ShouldIgnoreCollision(RaycastHit2D hit) {
 		int layer = hit.transform.gameObject.layer;
 
-		if (layer == LayerManager.shared.solidLayer) {
+ 		if (layer == LayerManager.shared.solidLayer) {
 			return false;
 		}
 		else if (layer == LayerManager.shared.jumpThroughLayer) {

@@ -4,12 +4,18 @@ using UnityEngine;
 
 public abstract class MovementController : MonoBehaviour {
 
-	[HideInInspector]
-	public bool rightDown = false;
-	[HideInInspector]
-	public bool leftDown = false;
-	[HideInInspector]
-	public bool jumpDown = false;
+    [HideInInspector]
+    public bool rightIsDown = false;
+    [HideInInspector]
+    public bool leftIsDown = false;
+    [HideInInspector]
+    public bool jumpIsDown = false;
+    [HideInInspector]
+    public bool jumpFirstDown = false;
+    [HideInInspector]
+    public bool downIsDown = false;
+    [HideInInspector]
+    public bool upIsDown = false;
 
 	public abstract void UpdateInputs();
 

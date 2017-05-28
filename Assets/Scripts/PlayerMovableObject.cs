@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class PlayerMovableObject : MovableObject {
 
+    private const float kFallThroughOffset = 0.01f;
+    private const float kJumpGravityModifierInterval = 0.25f;
+    private const float kJumpGravityModifier = 0.4f;
+
 	[Header("Velocity")]
 	public float maxXVelocity = 2.5f;
 	public float jumpVelocity = 4.5f;
@@ -12,11 +16,14 @@ public class PlayerMovableObject : MovableObject {
 	[Header("Controller")]
 	public MovementController controller = null;
 
-	protected bool jumping = false;
+    [HideInInspector]
+    public float jumpGravityModifierTimeLeft;
+    protected bool isJumping = false;
+
 	protected SpriteRenderer spriteRenderer;
 	protected Animator animator;
 
-	void Awake() {
+	void Start() {
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		animator = GetComponent<Animator>();
 	}
@@ -26,11 +33,11 @@ public class PlayerMovableObject : MovableObject {
 		if (controller == null) return;
 		controller.UpdateInputs();
 
-		if (controller.leftDown && !controller.rightDown) {
+		if (controller.leftIsDown && !controller.rightIsDown) {
 			targetVelocity.x = -maxXVelocity;
 			spriteRenderer.flipX = true;
 		}
-		else if (controller.rightDown && !controller.leftDown) {
+		else if (controller.rightIsDown && !controller.leftIsDown) {
 			targetVelocity.x = maxXVelocity;
 			spriteRenderer.flipX = false;
 		}
@@ -38,19 +45,41 @@ public class PlayerMovableObject : MovableObject {
 			targetVelocity.x = 0.0f;
 		}
 
-		if (controller.jumpDown && isGrounded) {
-			velocity.y = jumpVelocity;
-			jumping = true;
+        if (controller.jumpFirstDown && IsGrounded && !isJumping) {
+            // If we're on a jumpthrough platform and down is pressed, fall through.
+            if (IsOnJumpThroughTile && controller.downIsDown) {
+                rb2d.position += Vector2.down * kFallThroughOffset;
+            }
+            else {
+                velocity.y = jumpVelocity;
+                jumpGravityModifier = kJumpGravityModifier;
+                jumpGravityModifierTimeLeft = kJumpGravityModifierInterval;
+            }
+            isJumping = true;
 		}
+
+        // Handle jump impulse.
+        if (isJumping && jumpGravityModifierTimeLeft > Mathf.Epsilon) {
+            //velocity.y = jumpVelocity;
+
+            jumpGravityModifierTimeLeft -= Time.deltaTime;
+            if (!controller.jumpIsDown) {
+                jumpGravityModifierTimeLeft = 0.0f;
+            }
+
+            if (jumpGravityModifierTimeLeft <= Mathf.Epsilon) {
+                jumpGravityModifier = 1.0f;
+            }
+        }
 
 		//animator.SetBool("grounded", isGrounded);
 		animator.SetFloat("velX", Mathf.Abs(velocity.x));
 		animator.SetFloat("tvelX", Mathf.Abs(targetVelocity.x));
 		animator.SetBool("skidding", (targetVelocity.x * velocity.x) < 0.0f);
-		animator.SetBool("jump", jumping);
+		animator.SetBool("jump", isJumping);
 	}
 
 	protected void OnLanded() {
-		jumping = false;
+		isJumping = false;
 	}
 }
