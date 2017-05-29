@@ -22,10 +22,12 @@ public class PlayerMovableObject : MovableObject {
 
 	protected SpriteRenderer spriteRenderer;
 	protected Animator animator;
+    protected PlayerAudioSet audioSet;
 
 	void Start() {
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		animator = GetComponent<Animator>();
+        audioSet = GetComponent<PlayerAudioSet>();
 	}
 
 	// Movement
@@ -51,9 +53,7 @@ public class PlayerMovableObject : MovableObject {
                 rb2d.position += Vector2.down * kFallThroughOffset;
             }
             else {
-                velocity.y = jumpVelocity;
-                jumpGravityModifier = kJumpGravityModifier;
-                jumpGravityModifierTimeLeft = kJumpGravityModifierInterval;
+                Jump();
             }
             isJumping = true;
 		}
@@ -72,7 +72,6 @@ public class PlayerMovableObject : MovableObject {
             }
         }
 
-		//animator.SetBool("grounded", isGrounded);
 		animator.SetFloat("velX", Mathf.Abs(velocity.x));
 		animator.SetFloat("tvelX", Mathf.Abs(targetVelocity.x));
 		animator.SetBool("skidding", (targetVelocity.x * velocity.x) < 0.0f);
@@ -82,4 +81,12 @@ public class PlayerMovableObject : MovableObject {
 	protected void OnLanded() {
 		isJumping = false;
 	}
+
+    protected void Jump() {
+        velocity.y = jumpVelocity;
+        jumpGravityModifier = kJumpGravityModifier;
+        jumpGravityModifierTimeLeft = kJumpGravityModifierInterval;
+
+        AudioManager.Shared.PlaySingle(audioSet.jumpAudioClip);
+    }
 }

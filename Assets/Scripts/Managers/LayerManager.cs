@@ -6,10 +6,11 @@ using UnityEngine;
 public class LayerManager : MonoBehaviour {
 
     private static LayerManager _shared = null;
-    public static LayerManager shared {
+    public static LayerManager Shared {
         get {
             if (_shared == null) {
-                _shared = FindObjectOfType<LayerManager>();
+                Loader loader = FindObjectOfType<Loader>();
+                _shared = loader.LoadManager<LayerManager>();
             }
             return _shared;
         }

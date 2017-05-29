@@ -139,7 +139,7 @@ public class MovableObject : MonoBehaviour {
 					result = TileTypeForRaycastHit(hit);
                 }
 
-                if (hit.transform.gameObject.layer == LayerManager.shared.jumpThroughLayer) {
+                if (hit.transform.gameObject.layer == LayerManager.Shared.jumpThroughLayer) {
                     result |= TileType.JumpThrough;
                 }
 
@@ -232,14 +232,14 @@ public class MovableObject : MonoBehaviour {
 	private bool ShouldIgnoreCollision(RaycastHit2D hit) {
 		int layer = hit.transform.gameObject.layer;
 
- 		if (layer == LayerManager.shared.solidLayer) {
+        if (layer == LayerManager.Shared.solidLayer) {
 			return false;
 		}
-		else if (layer == LayerManager.shared.jumpThroughLayer) {
+		else if (layer == LayerManager.Shared.jumpThroughLayer) {
 			// Don't ignore if we've collided with the top and falling down.
 			return !(hit.normal.y > 0.0f && velocity.y < 0.0f && hit.distance > 0.0f);
 		}
-		else if (layer == LayerManager.shared.playerLayer) {
+		else if (layer == LayerManager.Shared.playerLayer) {
 			return false;
 		}
 		return true;
