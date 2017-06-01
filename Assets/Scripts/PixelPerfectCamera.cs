@@ -19,6 +19,9 @@ public class PixelPerfectCamera : MonoBehaviour {
     public float referencePixelsPerUnit;
     public List<PerfectOverride> overrides;
 
+    [HideInInspector]
+    public float currentPixelsPerUnit;
+
     private int lastSize = 0;
 
     // Use this for initialization
@@ -38,8 +41,8 @@ public class PixelPerfectCamera : MonoBehaviour {
 
         // then find the current orthoSize
         var overRide = FindOverride(lastSize);
-        float ppu = overRide != null ? overRide.referencePixelsPerUnit : referencePixelsPerUnit;
-        float orthoSize = (lastSize / ppu) * 0.5f;
+        currentPixelsPerUnit = overRide != null ? overRide.referencePixelsPerUnit : referencePixelsPerUnit;
+        float orthoSize = (lastSize / currentPixelsPerUnit) * 0.5f;
 
         // the multiplier is to make sure the orthoSize is as close to the reference as possible
         float multiplier = Mathf.Max(1, Mathf.Round(orthoSize / refOrthoSize));

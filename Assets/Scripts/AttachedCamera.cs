@@ -5,7 +5,6 @@ using UnityEngine;
 public class AttachedCamera : MonoBehaviour {
 
 	public GameObject attachedObject;
-    public GameObject attachedBackground;
 
 	private Camera targetCamera;
 
@@ -25,9 +24,5 @@ public class AttachedCamera : MonoBehaviour {
 		targetCamera.transform.position = new Vector3(attachedObject.transform.position.x, 
 													  attachedObject.transform.position.y, 
 													  targetCamera.transform.position.z);
-
-        attachedBackground.transform.position = new Vector3(attachedObject.transform.position.x,
-                                                            attachedObject.transform.position.y,
-                                                            attachedBackground.transform.position.z);
 	}
 }
