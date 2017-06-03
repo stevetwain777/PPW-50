@@ -4,20 +4,15 @@ using UnityEngine;
 
 public class Loader : MonoBehaviour {
 
-    public GameObject layerManager;
     public GameObject audioManager;
 
 	// Use this for initialization
 	void Awake () {
-        LoadManager<LayerManager>();
         LoadManager<AudioManager>();
 	}
 
     private GameObject PrefabForManager<T>() {
-        if (typeof(T) == typeof(LayerManager)) {
-            return layerManager;
-        }
-        else if (typeof(T) == typeof(AudioManager)) {
+        if (typeof(T) == typeof(AudioManager)) {
             return audioManager;
         }
         return null;
