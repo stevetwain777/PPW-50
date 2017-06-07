@@ -29,6 +29,9 @@ public class MovableObject : MonoBehaviour {
 	public float iceAccelerationModifier = 0.35f;
 	public float iceFrictionModifier = 0.07f;
 
+	[Header("Audio Sets")]
+	public TileAudioSet tileAudioSet;
+
 	// Grounded Properties
 	private bool _isGrounded;
 	public bool IsGrounded {
@@ -221,5 +224,8 @@ public class MovableObject : MonoBehaviour {
 
 	private void BreakSceneTile(SceneTile tile) {
 		tile.RemoveTile();
+		if (tileAudioSet) {
+			AudioManager.Shared.PlaySingle(tileAudioSet.breakTileAudioClip);
+		}
 	}
 }
